@@ -56,7 +56,6 @@ void TIM1_TRG_COM_TIM11_IRQHandler(void);
 void TIM4_IRQHandler(void);
 void TIM5_IRQHandler(void);
 void MotorCommutation(void);
-
 #ifdef __cplusplus
 }
 #endif

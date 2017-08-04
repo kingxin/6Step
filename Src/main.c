@@ -52,6 +52,7 @@
 
 /* USER CODE BEGIN Includes */
 #include "stm32f4xx_it.h"
+#include "stm32f4xx_ll_tim.h"    
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -131,31 +132,14 @@ int main(void)
   /* USER CODE BEGIN 2 */
   printf("<<<<<<<<<<<<Motor Control Start>>>>>>>>>>>>>\r\n");
   
+  MotorCommutation();
+  
   /* Enable TIM1 interrupt */
   HAL_TIMEx_ConfigCommutationEvent_IT(&htim1, TIM_TS_ITR3, TIM_COMMUTATION_TRGI);
   
   /* Enable TIM4 interrupt */
   HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
 //  HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_2);
-
-  MotorCommutation();
-  
-#if 0  
-  LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_PWM1);
-
-  LL_TIM_CC_EnableChannel(TIM1, 
-                          LL_TIM_CHANNEL_CH1 | 
-                          LL_TIM_CHANNEL_CH1N);
-#endif // 0
-  
-#if 0  
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-  HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-  HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
-  HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
-#endif // 0
   
   /* USER CODE END 2 */
 
@@ -331,7 +315,7 @@ static void MX_TIM1_Init(void)
   sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
   sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
   sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
-  sBreakDeadTimeConfig.DeadTime = 10;
+  sBreakDeadTimeConfig.DeadTime = 84;
   sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
   sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
   sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_ENABLE;
