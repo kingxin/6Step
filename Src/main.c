@@ -138,7 +138,7 @@ int main(void)
   HAL_TIMEx_ConfigCommutationEvent_IT(&htim1, TIM_TS_ITR3, TIM_COMMUTATION_TRGI);
   
   /* Enable TIM4 interrupt */
-  HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
+//  HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
 //  HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_2);
   
   /* USER CODE END 2 */
@@ -294,7 +294,7 @@ static void MX_TIM1_Init(void)
   sConfigOC.Pulse = 399;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  sConfigOC.OCFastMode = TIM_OCFAST_ENABLE;
   sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
   sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
   if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
