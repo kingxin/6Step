@@ -64,7 +64,6 @@ TIM_HandleTypeDef htim4;
 UART_HandleTypeDef huart2;
 
 osThreadId defaultTaskHandle;
-osTimerId osGetEncoderValueHandle;
 
 /* USER CODE BEGIN PV */
 
@@ -78,8 +77,7 @@ static void MX_TIM3_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM4_Init(void);
-void StartDefaultTask(void const * argument);
-void osEncoderCallback(void const * argument);                                    
+void StartDefaultTask(void const * argument);                                    
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
                                 
 
@@ -131,7 +129,7 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
   printf("<<<<<<<<<<<<Motor Control Start>>>>>>>>>>>>>\r\n");
-  
+
   MotorCommutation();
   
   /* Enable TIM1 interrupt */
@@ -140,7 +138,7 @@ int main(void)
   /* Enable TIM4 interrupt */
 //  HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
 //  HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_2);
-  
+
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -150,11 +148,6 @@ int main(void)
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
-
-  /* Create the timer(s) */
-  /* definition and creation of osGetEncoderValue */
-  osTimerDef(osGetEncoderValue, osEncoderCallback);
-  osGetEncoderValueHandle = osTimerCreate(osTimer(osGetEncoderValue), osTimerPeriodic, NULL);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
@@ -283,8 +276,8 @@ static void MX_TIM1_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_OC2REF;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_ENABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -294,7 +287,7 @@ static void MX_TIM1_Init(void)
   sConfigOC.Pulse = 399;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_ENABLE;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
   sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
   if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -312,8 +305,8 @@ static void MX_TIM1_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
-  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_ENABLE;
+  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_ENABLE;
   sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
   sBreakDeadTimeConfig.DeadTime = 84;
   sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
@@ -402,6 +395,7 @@ static void MX_TIM3_Init(void)
 static void MX_TIM4_Init(void)
 {
 
+  TIM_ClockConfigTypeDef sClockSourceConfig;
   TIM_HallSensor_InitTypeDef sConfig;
   TIM_MasterConfigTypeDef sMasterConfig;
 
@@ -410,10 +404,21 @@ static void MX_TIM4_Init(void)
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim4.Init.Period = 65535;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
   sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
   sConfig.IC1Filter = 0;
-  sConfig.Commutation_Delay = 0;
+  sConfig.Commutation_Delay = 5;
   if (HAL_TIMEx_HallSensor_Init(&htim4, &sConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -504,14 +509,6 @@ void StartDefaultTask(void const * argument)
     osDelay(1);
   }
   /* USER CODE END 5 */ 
-}
-
-/* osEncoderCallback function */
-void osEncoderCallback(void const * argument)
-{
-  /* USER CODE BEGIN osEncoderCallback */
-  
-  /* USER CODE END osEncoderCallback */
 }
 
 /**
