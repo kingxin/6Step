@@ -222,7 +222,7 @@ void MotorCommutation(void)
    
   switch(newHallPos)
   {    
-    case 3:
+    case 5:
     /*
       Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
       NC        -         +         0        1        1
@@ -245,7 +245,7 @@ void MotorCommutation(void)
       LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3 | LL_TIM_CHANNEL_CH3N);      
       break;
      
-    case 6:
+    case 3:
     /*
       Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
       +        NC         -          1        1        0
@@ -268,7 +268,7 @@ void MotorCommutation(void)
       LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3);    
       break;
       
-    case 2:
+    case 1:
     /*
       Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
       +         -         NC         0        1        0
@@ -291,7 +291,9 @@ void MotorCommutation(void)
       LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
       break;
 
-    case 5:
+    case 6:
+      /* @Todo: Debug purpose */
+      HAL_GPIO_TogglePin(GPIOE,GPIO_PIN_0);
     /*
       Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
       -         +         NC         1        0        1
@@ -314,7 +316,7 @@ void MotorCommutation(void)
       LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
       break;
 
-    case 1:
+    case 4:
     /*
       Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
       -         NC        +          0        0        1
@@ -337,7 +339,7 @@ void MotorCommutation(void)
       LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3 | LL_TIM_CHANNEL_CH3N);
       break;
       
-    case 4:
+    case 2:
     /*
       Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
       NC        +         -          0        1        0
