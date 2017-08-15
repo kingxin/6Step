@@ -109,13 +109,11 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
   printf("<<<<<<<<<<<<Motor Control Start>>>>>>>>>>>>>\r\n");
-
-//  MotorCommutation();
   
   /* Enable TIM1 interrupt */
   HAL_TIMEx_ConfigCommutationEvent(&htim1, TIM_TS_ITR3, TIM_COMMUTATION_TRGI);
   
-  /* Enable TIM4 OC2REF interrupt */
+  /* Enable TIM4 OC2REF interrupt for commutation */
   HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_2);
 
   /* USER CODE END 2 */

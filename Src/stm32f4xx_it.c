@@ -165,6 +165,20 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
+* @brief This function handles TIM1 trigger and commutation interrupts and TIM11 global interrupt.
+*/
+void TIM1_TRG_COM_TIM11_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM1_TRG_COM_TIM11_IRQn 0 */
+
+  /* USER CODE END TIM1_TRG_COM_TIM11_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim1);
+  /* USER CODE BEGIN TIM1_TRG_COM_TIM11_IRQn 1 */
+
+  /* USER CODE END TIM1_TRG_COM_TIM11_IRQn 1 */
+}
+
+/**
 * @brief This function handles TIM4 global interrupt.
 */
 void TIM4_IRQHandler(void)
@@ -219,6 +233,21 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
     /* @Todo: Debug purpose */
     HAL_GPIO_TogglePin(GPIOE,GPIO_PIN_1);
     MotorCommutation();
+  }
+}
+
+/**
+  * @brief  Hall Break detection callback in non blocking mode 
+  * @param  htim: pointer to a TIM_HandleTypeDef structure that contains
+  *                the configuration information for TIM module.
+  * @retval None
+  */
+void HAL_TIMEx_BreakCallback(TIM_HandleTypeDef *htim)
+{
+  if(htim->Instance == TIM1)
+  {
+    /* @Todo: Debug purpose */
+    HAL_GPIO_TogglePin(GPIOE,GPIO_PIN_0);
   }
 }
 
