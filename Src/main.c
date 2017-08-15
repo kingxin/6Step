@@ -49,21 +49,15 @@
 #include "main.h"
 #include "stm32f4xx_hal.h"
 #include "cmsis_os.h"
+#include "tim.h"
+#include "usart.h"
+#include "gpio.h"
 
 /* USER CODE BEGIN Includes */
-#include "stm32f4xx_it.h"
-#include "stm32f4xx_ll_tim.h"    
+  
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
-TIM_HandleTypeDef htim1;
-TIM_HandleTypeDef htim2;
-TIM_HandleTypeDef htim3;
-TIM_HandleTypeDef htim4;
-
-UART_HandleTypeDef huart2;
-
-osThreadId defaultTaskHandle;
 
 /* USER CODE BEGIN PV */
 
@@ -71,15 +65,7 @@ osThreadId defaultTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_USART2_UART_Init(void);
-static void MX_TIM3_Init(void);
-static void MX_TIM2_Init(void);
-static void MX_TIM1_Init(void);
-static void MX_TIM4_Init(void);
-void StartDefaultTask(void const * argument);                                    
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
-                                
+void MX_FREERTOS_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -87,13 +73,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-#ifdef __GNUC__
-  /* With GCC/RAISONANCE, small printf (option LD Linker->Libraries->Small printf
-     set to 'Yes') calls __io_putchar() */
-  #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
-#else
-  #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
-#endif /* __GNUC__ */
+
 /* USER CODE END 0 */
 
 int main(void)
@@ -133,40 +113,15 @@ int main(void)
 //  MotorCommutation();
   
   /* Enable TIM1 interrupt */
-  HAL_TIMEx_ConfigCommutationEvent_IT(&htim1, TIM_TS_ITR3, TIM_COMMUTATION_TRGI);
+  HAL_TIMEx_ConfigCommutationEvent(&htim1, TIM_TS_ITR3, TIM_COMMUTATION_TRGI);
   
-  /* Enable TIM4 interrupt */
-//  HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
-  HAL_TIM_Base_Start_IT(&htim4);
+  /* Enable TIM4 OC2REF interrupt */
   HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_2);
 
   /* USER CODE END 2 */
 
-  /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
-  /* USER CODE END RTOS_MUTEX */
-
-  /* USER CODE BEGIN RTOS_SEMAPHORES */
-  /* add semaphores, ... */
-  /* USER CODE END RTOS_SEMAPHORES */
-
-  /* USER CODE BEGIN RTOS_TIMERS */
-  /* start timers, add new ones, ... */
-  /* USER CODE END RTOS_TIMERS */
-
-  /* Create the thread(s) */
-  /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
-  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
-
-  /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
-  /* USER CODE END RTOS_THREADS */
-
-  /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
-  /* USER CODE END RTOS_QUEUES */
- 
+  /* Call init function for freertos objects (in freertos.c) */
+  MX_FREERTOS_Init();
 
   /* Start scheduler */
   osKernelStart();
@@ -245,260 +200,9 @@ void SystemClock_Config(void)
   HAL_NVIC_SetPriority(SysTick_IRQn, 15, 0);
 }
 
-/* TIM1 init function */
-static void MX_TIM1_Init(void)
-{
-
-  TIM_SlaveConfigTypeDef sSlaveConfig;
-  TIM_MasterConfigTypeDef sMasterConfig;
-  TIM_OC_InitTypeDef sConfigOC;
-  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
-
-  htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 0;
-  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 3999;
-  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim1.Init.RepetitionCounter = 0;
-  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  sSlaveConfig.SlaveMode = TIM_SLAVEMODE_TRIGGER;
-  sSlaveConfig.InputTrigger = TIM_TS_ITR3;
-  if (HAL_TIM_SlaveConfigSynchronization(&htim1, &sSlaveConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_OC2REF;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_ENABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 399;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
-  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
-  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_ENABLE;
-  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_ENABLE;
-  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
-  sBreakDeadTimeConfig.DeadTime = 84;
-  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
-  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
-  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_ENABLE;
-  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  HAL_TIM_MspPostInit(&htim1);
-
-}
-
-/* TIM2 init function */
-static void MX_TIM2_Init(void)
-{
-
-  TIM_Encoder_InitTypeDef sConfig;
-  TIM_MasterConfigTypeDef sMasterConfig;
-
-  htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 3;
-  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 4294967295;
-  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
-  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
-  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
-  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC1Filter = 0;
-  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
-  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
-  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC2Filter = 0;
-  if (HAL_TIM_Encoder_Init(&htim2, &sConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-}
-
-/* TIM3 init function */
-static void MX_TIM3_Init(void)
-{
-
-  TIM_SlaveConfigTypeDef sSlaveConfig;
-  TIM_MasterConfigTypeDef sMasterConfig;
-
-  htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 0;
-  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 65535;
-  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  sSlaveConfig.SlaveMode = TIM_SLAVEMODE_EXTERNAL1;
-  sSlaveConfig.InputTrigger = TIM_TS_TI1FP1;
-  sSlaveConfig.TriggerPolarity = TIM_TRIGGERPOLARITY_RISING;
-  sSlaveConfig.TriggerFilter = 0;
-  if (HAL_TIM_SlaveConfigSynchronization(&htim3, &sSlaveConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-}
-
-/* TIM4 init function */
-static void MX_TIM4_Init(void)
-{
-
-  TIM_HallSensor_InitTypeDef sConfig;
-  TIM_MasterConfigTypeDef sMasterConfig;
-
-  htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 840;
-  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 65535;
-  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
-  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC1Filter = 0;
-  sConfig.Commutation_Delay = 1;
-  if (HAL_TIMEx_HallSensor_Init(&htim4, &sConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-#if 0
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-#endif // 0
-}
-
-/* USART2 init function */
-static void MX_USART2_UART_Init(void)
-{
-
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-}
-
-/** Configure pins as 
-        * Analog 
-        * Input 
-        * Output
-        * EVENT_OUT
-        * EXTI
-*/
-static void MX_GPIO_Init(void)
-{
-
-  GPIO_InitTypeDef GPIO_InitStruct;
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
-  __HAL_RCC_GPIOE_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_0|GPIO_PIN_1, GPIO_PIN_RESET);
-
-  /*Configure GPIO pins : PE0 PE1 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
-
-}
-
 /* USER CODE BEGIN 4 */
-/***********************************************
-  * @brief  Retargets the C library printf function to the USART.
-  * @param  None
-  * @retval None
-************************************************/
-PUTCHAR_PROTOTYPE
-{
-  /* Place your implementation of fputc here */
-  /* e.g. write a character to the debug port and Loop until the end of transmission */
-  HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, 0xFFFF); 
 
-  return ch;
-}
 /* USER CODE END 4 */
-
-/* StartDefaultTask function */
-void StartDefaultTask(void const * argument)
-{
-
-  /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END 5 */ 
-}
 
 /**
   * @brief  Period elapsed callback in non blocking mode
@@ -511,9 +215,7 @@ void StartDefaultTask(void const * argument)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 /* USER CODE BEGIN Callback 0 */
-  if (htim->Instance == TIM4) {
-//    HAL_GPIO_TogglePin(GPIOE,GPIO_PIN_1);
-  }
+
 /* USER CODE END Callback 0 */
   if (htim->Instance == TIM5) {
     HAL_IncTick();
