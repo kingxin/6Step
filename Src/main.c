@@ -130,14 +130,15 @@ int main(void)
   /* USER CODE BEGIN 2 */
   printf("<<<<<<<<<<<<Motor Control Start>>>>>>>>>>>>>\r\n");
 
-  MotorCommutation();
+//  MotorCommutation();
   
   /* Enable TIM1 interrupt */
   HAL_TIMEx_ConfigCommutationEvent_IT(&htim1, TIM_TS_ITR3, TIM_COMMUTATION_TRGI);
   
   /* Enable TIM4 interrupt */
 //  HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
-//  HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_2);
+  HAL_TIM_Base_Start_IT(&htim4);
+  HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_2);
 
   /* USER CODE END 2 */
 
@@ -278,13 +279,13 @@ static void MX_TIM1_Init(void)
 
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_OC2REF;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_ENABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
 
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 799;
+  sConfigOC.Pulse = 399;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
@@ -399,25 +400,25 @@ static void MX_TIM4_Init(void)
   TIM_MasterConfigTypeDef sMasterConfig;
 
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 84;
+  htim4.Init.Prescaler = 840;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim4.Init.Period = 65535;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
   sConfig.IC1Filter = 0;
-  sConfig.Commutation_Delay = 5;
+  sConfig.Commutation_Delay = 1;
   if (HAL_TIMEx_HallSensor_Init(&htim4, &sConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
-
+#if 0
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
-
+#endif // 0
 }
 
 /* USART2 init function */
@@ -510,7 +511,9 @@ void StartDefaultTask(void const * argument)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 /* USER CODE BEGIN Callback 0 */
-
+  if (htim->Instance == TIM4) {
+//    HAL_GPIO_TogglePin(GPIOE,GPIO_PIN_1);
+  }
 /* USER CODE END Callback 0 */
   if (htim->Instance == TIM5) {
     HAL_IncTick();

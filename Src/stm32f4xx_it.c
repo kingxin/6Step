@@ -46,6 +46,7 @@ static uint8_t lastHallPos = 0;
 
 /* External variables --------------------------------------------------------*/
 extern TIM_HandleTypeDef htim1;
+extern TIM_HandleTypeDef htim4;
 
 extern TIM_HandleTypeDef htim5;
 
@@ -175,11 +176,31 @@ void TIM1_TRG_COM_TIM11_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM1_TRG_COM_TIM11_IRQn 0 */
   
+  /* @Todo: Debug purpose */
+  HAL_GPIO_TogglePin(GPIOE,GPIO_PIN_0);
+  
   /* USER CODE END TIM1_TRG_COM_TIM11_IRQn 0 */
   HAL_TIM_IRQHandler(&htim1);
   /* USER CODE BEGIN TIM1_TRG_COM_TIM11_IRQn 1 */
 
   /* USER CODE END TIM1_TRG_COM_TIM11_IRQn 1 */
+}
+
+/**
+* @brief This function handles TIM4 global interrupt.
+*/
+void TIM4_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM4_IRQn 0 */
+    
+  /* @Todo: Debug purpose */
+//  HAL_GPIO_TogglePin(GPIOE,GPIO_PIN_0);
+  
+  /* USER CODE END TIM4_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim4);
+  /* USER CODE BEGIN TIM4_IRQn 1 */
+
+  /* USER CODE END TIM4_IRQn 1 */
 }
 
 /**
@@ -292,8 +313,6 @@ void MotorCommutation(void)
       break;
 
     case 6:
-      /* @Todo: Debug purpose */
-      HAL_GPIO_TogglePin(GPIOE,GPIO_PIN_0);
     /*
       Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
       -         +         NC         1        0        1
@@ -390,7 +409,8 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
   if(htim->Instance == TIM4)
   {
     /* @Todo: Debug purpose */
-//    HAL_GPIO_TogglePin(GPIOE,GPIO_PIN_0);
+    HAL_GPIO_TogglePin(GPIOE,GPIO_PIN_1);
+    MotorCommutation();
   }
 }
 
@@ -402,20 +422,17 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
   */
 void HAL_TIMEx_CommutationCallback(TIM_HandleTypeDef *htim)
 {
+  /* @Todo: Debug purpose */
+//  HAL_GPIO_TogglePin(GPIOE,GPIO_PIN_0);
+  
   /* This interrupt handler is called AFTER the motor commutation event is done
    * after commutation the next motor step must be prepared
    * use inline functions in irq handlers static __INLINE funct(..) {..} 
    */
   if(htim->Instance == TIM1)
   {
-    MotorCommutation();
-    
-    /* @Todo: Debug purpose */
-    HAL_GPIO_TogglePin(GPIOE,GPIO_PIN_1);
+//    MotorCommutation();
   }
-
-  /* @Todo: Debug purpose */
-//  HAL_GPIO_TogglePin(GPIOE,GPIO_PIN_1);
 }
 
 /* USER CODE END 1 */
