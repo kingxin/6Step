@@ -103,7 +103,7 @@ void MX_TIM1_Init(void)
   }
 
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 399;
+  sConfigOC.Pulse = 599;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
@@ -212,14 +212,14 @@ void MX_TIM4_Init(void)
   TIM_MasterConfigTypeDef sMasterConfig;
 
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 840;
+  htim4.Init.Prescaler = 84;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim4.Init.Period = 65535;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
   sConfig.IC1Filter = 0;
-  sConfig.Commutation_Delay = 1;
+  sConfig.Commutation_Delay = 5;
   if (HAL_TIMEx_HallSensor_Init(&htim4, &sConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -502,165 +502,330 @@ void MotorCommutation(void)
    * step but I had sometimes problems that the motor was running
    * on an harmonic wave when the motor was without load
    */  
-  uint16_t newHallPos = ((GPIOD->IDR & 0x7000) >> 12);
+  uint16_t newHallPos = 0;
+  uint8_t currMotorDirection = 0;
+  
+  /* Get Current Hall Sensor Position */
+  newHallPos = ((GPIOD->IDR & 0x7000) >> 12);
+  
+  /* Read Motor Direction Setting */
+  currMotorDirection = HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_1);
 
   if (newHallPos == lastHallPos)
   {
+    /* @Todo: Error Log, don't return directly */
     return;
   }
   
   lastHallPos = newHallPos;
 
-  /* @Todo: Debug purpose only - it will affect */
+  /* @Todo: Debug purpose only - it will generate about 1.5ms delay
+   * Remove it for formal release
+  */
 //  printf("newHallPos = %d\r\n", newHallPos);
 
-  /* Clockwise */
-  switch(newHallPos)
-  {
-    case 5:
-    /*
-      Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
-      NC        -         +         0        1        1
-      CH1|CH1N||CH2|CH2N||CH3|CH3N
-      OFF|OFF ||OFF| ON ||PWM1/2 
-     */
-      /* Next step: Step 1 Configuration -------------------------------------- */
-      /*  Channel1 configuration - CH1:OFF, CH1N:OFF */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_INACTIVE);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1);
-      LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH1N);
-    
-      /*  Channel2 configuration - CH2:OFF, CH2N:ON */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_ACTIVE);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2N);
-      LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH2);    
-
-      /*  Channel3 configuration - CH3:PWM1, CH3N:PWM2 */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_PWM1);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3 | LL_TIM_CHANNEL_CH3N);      
-      break;
-     
-    case 3:
-    /*
-      Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
-      +        NC         -          1        1        0
-      CH1|CH1N||CH2|CH2N||CH3|CH3N
-      PWM1/2  ||OFF|OFF ||OFF| ON
-     */      
-      /* Next step: Step 1 Configuration -------------------------------------- */
-      /*  Channel1 configuration */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_PWM1);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1 | LL_TIM_CHANNEL_CH1N); 
-    
-      /*  Channel2 configuration */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_INACTIVE);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2);
-      LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH2N);
-
-      /*  Channel3 configuration */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_ACTIVE);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
-      LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3);    
-      break;
-      
-    case 1:
-    /*
-      Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
-      +         -         NC         0        1        0
-      CH1|CH1N||CH2|CH2N||CH3|CH3N
-      PWM1/2  ||OFF| ON ||OFF|OFF
-     */
-      /* Next step: Step 1 Configuration -------------------------------------- */
-      /*  Channel1 configuration */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_PWM1);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1 | LL_TIM_CHANNEL_CH1N);
-    
-      /*  Channel2 configuration */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_ACTIVE);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2N);
-      LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH2);          
-
-      /*  Channel3 configuration */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_INACTIVE);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3);
-      LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
-      break;
-
-    case 6:
-    /*
-      Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
-      -         +         NC         1        0        1
-      CH1|CH1N||CH2|CH2N||CH3|CH3N
-      OFF| ON ||PWM1/2  ||OFF|OFF
-     */      
-      /* Next step: Step 1 Configuration -------------------------------------- */
-      /*  Channel1 configuration */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_ACTIVE);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1N);
-      LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH1);    
-    
-      /*  Channel2 configuration */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_PWM1);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2 | LL_TIM_CHANNEL_CH2N);       
-
-      /*  Channel3 configuration */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_INACTIVE);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3);
-      LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
-      break;
-
-    case 4:
-    /*
-      Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
-      -         NC        +          0        0        1
-      CH1|CH1N||CH2|CH2N|CH3|CH3N
-      OFF| ON ||OFF|OFF |PWM1/2
-     */
-      /* Next step: Step 1 Configuration -------------------------------------- */
-      /*  Channel1 configuration */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_ACTIVE);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1N);
-      LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH1);      
-    
-      /*  Channel2 configuration */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_INACTIVE);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2);
-      LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH2N);
-      
-      /*  Channel3 configuration */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_PWM1);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3 | LL_TIM_CHANNEL_CH3N);
-      break;
-      
-    case 2:
-    /*
-      Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
-      NC        +         -          0        1        0
-      CH1|CH1N||CH2|CH2N|CH3|CH3N
-      OFF|OFF ||PWM1/2  |OFF| ON
-     */
-      /* Next step: Step 1 Configuration -------------------------------------- */
-      /*  Channel1 configuration */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_INACTIVE);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1N);
-      LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH1);    
-        
-      /*  Channel2 configuration */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_PWM1);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2 | LL_TIM_CHANNEL_CH2N);
-
-      /*  Channel3 configuration */
-      LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_ACTIVE);
-      LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
-      LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3);    
-      break;
-      
-    default:
-      printf("HallSensorError!");
-      break;     
-  }
+  /* Motor Direction Indicator :
+   * 0 - Clockwise
+   * 1 - CounterClockwise */
   
-  /* @Todo: CounterClockwise */
+  /* Clockwise - Forward */
+  if(!currMotorDirection)
+  {
+    switch(newHallPos)
+    {
+      case 5:
+      /*
+        Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
+        NC        -         +          0        0        1
+        CH1|CH1N||CH2|CH2N||CH3|CH3N
+        OFF|OFF ||OFF| ON ||PWM1/2 
+       */
+        /* Next step: Step 1 Configuration -------------------------------------- */
+        /*  Channel1 configuration - CH1:OFF, CH1N:OFF */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_INACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH1N);
+      
+        /*  Channel2 configuration - CH2:OFF, CH2N:ON */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_ACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2N);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH2);    
+
+        /*  Channel3 configuration - CH3:PWM1, CH3N:PWM2 */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_PWM1);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3 | LL_TIM_CHANNEL_CH3N);      
+        break;
+       
+      case 3:
+      /*
+        Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
+        +         NC        -          0        1        0
+        CH1|CH1N||CH2|CH2N||CH3|CH3N
+        PWM1/2  ||OFF|OFF ||OFF| ON
+       */      
+        /* Next step: Step 1 Configuration -------------------------------------- */
+        /*  Channel1 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_PWM1);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1 | LL_TIM_CHANNEL_CH1N); 
+      
+        /*  Channel2 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_INACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH2N);
+
+        /*  Channel3 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_ACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3);    
+        break;
+        
+      case 1:
+      /*
+        Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
+        +         -         NC         0        1        1
+        CH1|CH1N||CH2|CH2N||CH3|CH3N
+        PWM1/2  ||OFF| ON ||OFF|OFF
+       */
+        /* Next step: Step 1 Configuration -------------------------------------- */
+        /*  Channel1 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_PWM1);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1 | LL_TIM_CHANNEL_CH1N);
+      
+        /*  Channel2 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_ACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2N);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH2);          
+
+        /*  Channel3 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_INACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
+        break;
+
+      case 6:
+      /*
+        Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
+        -         +         NC         0        0        1
+        CH1|CH1N||CH2|CH2N||CH3|CH3N
+        OFF| ON ||PWM1/2  ||OFF|OFF
+       */      
+        /* Next step: Step 1 Configuration -------------------------------------- */
+        /*  Channel1 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_ACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1N);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH1);    
+      
+        /*  Channel2 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_PWM1);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2 | LL_TIM_CHANNEL_CH2N);       
+
+        /*  Channel3 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_INACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
+        break;
+
+      case 4:
+      /*
+        Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
+        -         NC        +          1        0        1
+        CH1|CH1N||CH2|CH2N|CH3|CH3N
+        OFF| ON ||OFF|OFF |PWM1/2
+       */
+        /* Next step: Step 1 Configuration -------------------------------------- */
+        /*  Channel1 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_ACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1N);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH1);      
+      
+        /*  Channel2 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_INACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH2N);
+        
+        /*  Channel3 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_PWM1);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3 | LL_TIM_CHANNEL_CH3N);
+        break;
+        
+      case 2:
+      /*
+        Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
+        NC        +         -          0        1        1
+        CH1|CH1N||CH2|CH2N|CH3|CH3N
+        OFF|OFF ||PWM1/2  |OFF| ON
+       */
+        /* Next step: Step 1 Configuration -------------------------------------- */
+        /*  Channel1 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_INACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1N);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH1);    
+          
+        /*  Channel2 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_PWM1);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2 | LL_TIM_CHANNEL_CH2N);
+
+        /*  Channel3 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_ACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3);    
+        break;
+        
+      default:
+        /* @Todo: Error Log */
+        printf("<<<<<<Hall Sensor Position Error!>>>>>>\r\n");
+        break;     
+    }
+  }
+  else 
+  /* CounterClockwise - Backward */
+  {
+    switch(newHallPos)
+    {
+      case 1:
+      /*
+        Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
+        NC        -         +          0        0        1
+        CH1|CH1N||CH2|CH2N||CH3|CH3N
+        OFF|OFF ||OFF| ON ||PWM1/2 
+       */
+        /* Next step: Step 1 Configuration -------------------------------------- */
+        /*  Channel1 configuration - CH1:OFF, CH1N:OFF */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_INACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH1N);
+      
+        /*  Channel2 configuration - CH2:OFF, CH2N:ON */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_ACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2N);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH2);    
+
+        /*  Channel3 configuration - CH3:PWM1, CH3N:PWM2 */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_PWM1);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3 | LL_TIM_CHANNEL_CH3N);      
+        break;
+       
+      case 2:
+      /*
+        Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
+        +        NC         -          0        1        0
+        CH1|CH1N||CH2|CH2N||CH3|CH3N
+        PWM1/2  ||OFF|OFF ||OFF| ON
+       */      
+        /* Next step: Step 1 Configuration -------------------------------------- */
+        /*  Channel1 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_PWM1);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1 | LL_TIM_CHANNEL_CH1N); 
+      
+        /*  Channel2 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_INACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH2N);
+
+        /*  Channel3 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_ACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3);    
+        break;
+        
+      case 3:
+      /*
+        Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
+        +         -         NC         0        1        1
+        CH1|CH1N||CH2|CH2N||CH3|CH3N
+        PWM1/2  ||OFF| ON ||OFF|OFF
+       */
+        /* Next step: Step 1 Configuration -------------------------------------- */
+        /*  Channel1 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_PWM1);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1 | LL_TIM_CHANNEL_CH1N);
+      
+        /*  Channel2 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_ACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2N);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH2);          
+
+        /*  Channel3 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_INACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
+        break;
+
+      case 4:
+      /*
+        Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
+        -         +         NC         1        0        0
+        CH1|CH1N||CH2|CH2N||CH3|CH3N
+        OFF| ON ||PWM1/2  ||OFF|OFF
+       */      
+        /* Next step: Step 1 Configuration -------------------------------------- */
+        /*  Channel1 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_ACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1N);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH1);    
+      
+        /*  Channel2 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_PWM1);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2 | LL_TIM_CHANNEL_CH2N);       
+
+        /*  Channel3 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_INACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
+        break;
+
+      case 5:
+      /*
+        Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
+        -         NC        +          1        0        1
+        CH1|CH1N||CH2|CH2N|CH3|CH3N
+        OFF| ON ||OFF|OFF |PWM1/2
+       */
+        /* Next step: Step 1 Configuration -------------------------------------- */
+        /*  Channel1 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_ACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1N);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH1);      
+      
+        /*  Channel2 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_INACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH2N);
+        
+        /*  Channel3 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_PWM1);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3 | LL_TIM_CHANNEL_CH3N);
+        break;
+        
+      case 6:
+      /*
+        Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
+        NC        +         -          1        1        0
+        CH1|CH1N||CH2|CH2N|CH3|CH3N
+        OFF|OFF ||PWM1/2  |OFF| ON
+       */
+        /* Next step: Step 1 Configuration -------------------------------------- */
+        /*  Channel1 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_INACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1N);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH1);    
+          
+        /*  Channel2 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_PWM1);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2 | LL_TIM_CHANNEL_CH2N);
+
+        /*  Channel3 configuration */
+        LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_ACTIVE);
+        LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
+        LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3);    
+        break;
+        
+      default:
+        /* @Todo: Error Log */
+        printf("<<<<<<Hall Sensor Position Error!>>>>>>\r\n");
+        break;
+    }
+  }
 }
 
 /* Get Current Encoder Value */
