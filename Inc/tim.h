@@ -85,6 +85,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 /* USER CODE BEGIN Prototypes */
 
 void MotorCommutation(void);
+uint32_t GetCurrEncoderValue(void);
 
 /* USER CODE END Prototypes */
 

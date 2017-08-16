@@ -108,13 +108,19 @@ int main(void)
   MX_TIM4_Init();
 
   /* USER CODE BEGIN 2 */
-  printf("<<<<<<<<<<<<Motor Control Start>>>>>>>>>>>>>\r\n");
+  printf("<<<<<<<<<<<<Motion Transmission Test>>>>>>>>>>>>>\r\n");
   
   /* Enable TIM1 interrupt */
   HAL_TIMEx_ConfigCommutationEvent(&htim1, TIM_TS_ITR3, TIM_COMMUTATION_TRGI);
   
   /* Enable TIM4 OC2REF interrupt for commutation */
   HAL_TIM_OC_Start_IT(&htim4, TIM_CHANNEL_2);
+  
+  /* Enable TIM4 BREAK interrupt */
+  __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_BREAK);
+  
+  /* Enable Encoder Counter */
+  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1 | TIM_CHANNEL_2);
 
   /* USER CODE END 2 */
 

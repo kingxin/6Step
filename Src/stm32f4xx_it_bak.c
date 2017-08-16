@@ -244,20 +244,14 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 void HAL_TIMEx_BreakCallback(TIM_HandleTypeDef *htim)
 {
   uint32_t tmpEncoder = 0;
-  uint8_t tmpMotorDirection = 0;
-  
   if(htim->Instance == TIM1)
   {
     /* @Todo: Debug purpose */
-    HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_0);
+    HAL_GPIO_TogglePin(GPIOE,GPIO_PIN_0);
     
     /* Output Encoder Value */
     tmpEncoder = GetCurrEncoderValue();
     printf("CurrentEncoderValue = %d\r\n", tmpEncoder);
-    
-    /* Read Motor Direction Setting */
-    tmpMotorDirection = HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_1);
-    printf("CurrentMotorDirection = %d\r\n", tmpMotorDirection);
   }
 }
 
