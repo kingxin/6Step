@@ -103,12 +103,12 @@ void MX_TIM1_Init(void)
   }
 
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 599;
+  sConfigOC.Pulse = 399;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
-  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_SET;
   if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -212,14 +212,14 @@ void MX_TIM4_Init(void)
   TIM_MasterConfigTypeDef sMasterConfig;
 
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 84;
+  htim4.Init.Prescaler = 840;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim4.Init.Period = 65535;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
   sConfig.IC1Filter = 0;
-  sConfig.Commutation_Delay = 5;
+  sConfig.Commutation_Delay = 1;
   if (HAL_TIMEx_HallSensor_Init(&htim4, &sConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -682,7 +682,7 @@ void MotorCommutation(void)
   {
     switch(newHallPos)
     {
-      case 1:
+      case 2:
       /*
         Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
         NC        -         +          0        0        1
@@ -705,7 +705,7 @@ void MotorCommutation(void)
         LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3 | LL_TIM_CHANNEL_CH3N);      
         break;
        
-      case 2:
+      case 4:
       /*
         Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
         +        NC         -          0        1        0
@@ -728,7 +728,7 @@ void MotorCommutation(void)
         LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3);    
         break;
         
-      case 3:
+      case 6:
       /*
         Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
         +         -         NC         0        1        1
@@ -751,7 +751,7 @@ void MotorCommutation(void)
         LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
         break;
 
-      case 4:
+      case 1:
       /*
         Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
         -         +         NC         1        0        0
@@ -774,7 +774,7 @@ void MotorCommutation(void)
         LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
         break;
 
-      case 5:
+      case 3:
       /*
         Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
         -         NC        +          1        0        1
@@ -797,7 +797,7 @@ void MotorCommutation(void)
         LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3 | LL_TIM_CHANNEL_CH3N);
         break;
         
-      case 6:
+      case 5:
       /*
         Phase A | Phase B | Phase C || Hall C | Hall B | Hall A
         NC        +         -          1        1        0
